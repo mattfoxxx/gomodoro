@@ -19,20 +19,27 @@ var splitsWindow fyne.Window
 // Launch starts the pomodoro system tray app
 func Launch() {
 	gomodoroApp = app.NewWithID("com.github.mattfoxxx.gomodoro")
+	systrayStart, systrayStop := systray.RunWithExternalLoop(onReady, onExit)
+
 	mainWindow = gomodoroApp.NewWindow("Main Application Window")
-	mainWindow.SetFullScreen(true)
 	mainWindow.SetMaster()
-	mainWindow.Hide()
+	mainWindow.Resize(fyne.NewSize(1920, 1024))
+	mainWindow.CenterOnScreen()
 	mainWindow.SetCloseIntercept(func() {
-		mainWindow.Hide()
+		systrayStop()
+		gomodoroApp.Quit()
 	})
+	mainWindow.Hide()
+
 	splitsWindow = gomodoroApp.NewWindow("Hidden Pomodoro Splits Window")
 	splitsWindow.Resize(fyne.NewSize(640, 480))
-	splitsWindow.Hide()
+	splitsWindow.CenterOnScreen()
 	splitsWindow.SetCloseIntercept(func() {
 		splitsWindow.Hide()
 	})
-	systray.Run(onReady, onExit)
+	splitsWindow.Hide()
+
+	systrayStart()
 	gomodoroApp.Run()
 }
 
@@ -41,7 +48,7 @@ func onReady() {
 	systray.SetTitle("Gomodoro")
 	systray.SetTooltip("gomodoro - your pomodoro timer")
 	mNotify := systray.AddMenuItem("Notify", "Send a notification")
-	mSplits := systray.AddMenuItem("Splits", "Configure intervals")
+	mSplits := systray.AddMenuItem("Intervals", "Configure intervals")
 	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
 
 	// Sets the icon of gomodoro_app menu item. Only available on Mac and Windows.
@@ -54,18 +61,18 @@ func onReady() {
 			time.Sleep(1 * time.Second)
 		}
 	}()*/
-
 	go func() {
 		for {
 			select {
 			case <-mSplits.ClickedCh:
-				fmt.Println("Splits was clicked!")
+				fmt.Println("Intervals was clicked!")
 				go showWindow(splitsWindow)
 			case <-mNotify.ClickedCh:
 				fmt.Println("Notify was clicked!")
 				go showNotification(gomodoroApp)
 			case <-mQuit.ClickedCh:
 				fmt.Println("User requested to quit the application!")
+				gomodoroApp.Quit()
 				systray.Quit()
 				return
 			}
@@ -84,5 +91,6 @@ func showNotification(a fyne.App) {
 }
 
 func showWindow(w fyne.Window) {
+	fmt.Println("In showWindow function")
 	w.Show()
 }
